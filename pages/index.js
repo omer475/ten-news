@@ -8,148 +8,226 @@ export default function Home() {
   const [swipeHint, setSwipeHint] = useState(true);
 
   useEffect(() => {
-    // Load sample data for now
-    const sampleStories = [
-      {
-        type: 'opening',
-        date: 'MONDAY, AUGUST 25, 2025',
-        headline: 'Good morning, typhoon chaos hits Asia\'s coastal millions',
-        readingTime: '2 minute read'
-      },
-      {
-        type: 'news',
-        number: 1,
-        emoji: '🌀',
-        title: 'Massive Typhoon Forces Vietnam and China Emergency Evacuations',
-        summary: 'Typhoon Kajiki threatens millions as Vietnam evacuates 586,000 people and cancels flights. China\'s resort city Sanya closed businesses and public transport.',
-        url: 'https://reuters.com/typhoon'
-      },
-      {
-        type: 'news',
-        number: 2,
-        emoji: '☕',
-        title: 'Coffee Giants Near Record $18 Billion Merger Deal',
-        summary: 'Keurig Dr Pepper is close to buying Dutch company JDE Peet\'s for $18 billion. This merger would create a global coffee powerhouse.',
-        url: 'https://bloomberg.com/coffee'
-      },
-      {
-        type: 'news',
-        number: 3,
-        emoji: '🌾',
-        title: 'Brazil Farm Bankruptcies Surge Threatening Global Food Supply',
-        summary: 'Brazil\'s agricultural sector faces crisis with farm bankruptcies jumping 138% to 1,272 cases in 2024.',
-        url: 'https://reuters.com/brazil'
-      },
-      {
-        type: 'news',
-        number: 4,
-        emoji: '🤖',
-        title: 'UK Government Considers Free ChatGPT Plus for All Citizens',
-        summary: 'Minister Peter Kyle discussed a £2 billion deal with OpenAI\'s Sam Altman to provide ChatGPT Plus to all 67 million UK residents.',
-        url: 'https://bbc.com/uk-ai'
-      },
-      {
-        type: 'news',
-        number: 5,
-        emoji: '🚀',
-        title: 'NASA Discovers Earth-Like Planet With Water Signatures',
-        summary: 'James Webb telescope identifies potentially habitable exoplanet just 40 light-years away.',
-        url: 'https://nasa.gov/exoplanet'
-      },
-      {
-        type: 'news',
-        number: 6,
-        emoji: '📈',
-        title: 'Tech Stocks Drive S&P 500 to All-Time Record High',
-        summary: 'Markets surge as artificial intelligence companies lead unprecedented rally.',
-        url: 'https://cnbc.com/markets'
-      },
-      {
-        type: 'news',
-        number: 7,
-        emoji: '🏅',
-        title: 'Paris Olympics Shatters All Previous Attendance Records',
-        summary: 'Summer games attract record-breaking 15 million spectators across innovative urban venues.',
-        url: 'https://olympics.com/paris'
-      },
-      {
-        type: 'news',
-        number: 8,
-        emoji: '🎬',
-        title: 'Disney Launches Major Offensive in Streaming Wars',
-        summary: 'Entertainment giant announces $50 billion content investment and new pricing strategy.',
-        url: 'https://variety.com/disney'
-      },
-      {
-        type: 'news',
-        number: 9,
-        emoji: '🧬',
-        title: 'Revolutionary Cancer Treatment Shows 90% Success Rate',
-        summary: 'New immunotherapy approach demonstrates unprecedented results in late-stage clinical trials.',
-        url: 'https://nature.com/cancer'
-      },
-      {
-        type: 'news',
-        number: 10,
-        emoji: '🌍',
-        title: 'Breakthrough Carbon Capture Technology Promises Net Zero',
-        summary: 'Scientists unveil revolutionary atmospheric carbon removal system with 99% efficiency rate.',
-        url: 'https://science.org/climate'
-      },
-      {
-        type: 'history',
-        content: `
-          <div style="text-align: center; padding: 20px;">
-            <h1 style="font-size: 48px; font-weight: 800; margin-bottom: 40px;">Today in History</h1>
-            <div style="max-width: 600px; margin: 0 auto; text-align: left;">
-              <div style="display: flex; gap: 24px; margin-bottom: 24px; align-items: center;">
-                <span style="padding: 8px 16px; background: #C6E5F3; color: #007AFF; border-radius: 100px; font-weight: 700;">1991</span>
-                <span style="font-size: 18px;">Linux operating system released by Linus Torvalds</span>
+    const loadNewsData = async () => {
+      try {
+        // Try to load real news data first
+        const response = await fetch('/news_data.json');
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Convert the real news data to your story format
+          const realStories = [
+            {
+              type: 'opening',
+              date: data.displayDate || 'MONDAY, AUGUST 25, 2025',
+              headline: data.dailyGreeting || 'Good morning, today brings important global updates',
+              readingTime: data.readingTime || '2 minute read'
+            },
+            // Convert each article to story format
+            ...data.articles.map(article => ({
+              type: 'news',
+              number: article.rank,
+              emoji: article.emoji,
+              title: article.title,
+              summary: article.summary,
+              url: article.url
+            })),
+            // Add historical events if they exist
+            {
+              type: 'history',
+              content: `
+                <div style="text-align: center; padding: 20px;">
+                  <h1 style="font-size: 48px; font-weight: 800; margin-bottom: 40px;">Today in History</h1>
+                  <div style="max-width: 600px; margin: 0 auto; text-align: left;">
+                    ${data.historicalEvents ? data.historicalEvents.map(event => `
+                      <div style="display: flex; gap: 24px; margin-bottom: 24px; align-items: center;">
+                        <span style="padding: 8px 16px; background: #C6E5F3; color: #007AFF; border-radius: 100px; font-weight: 700;">${event.year}</span>
+                        <span style="font-size: 18px;">${event.description}</span>
+                      </div>
+                    `).join('') : ''}
+                  </div>
+                </div>
+              `
+            },
+            {
+              type: 'end',
+              content: `
+                <div style="text-align: center;">
+                  <div style="font-size: 64px; margin-bottom: 32px;">👋</div>
+                  <h2 style="font-size: 36px; font-weight: 700; margin-bottom: 16px;">That's all for today, see you tomorrow :)</h2>
+                  <p style="font-size: 17px; color: #86868b;">Stay informed with Ten News</p>
+                </div>
+              `
+            },
+            {
+              type: 'newsletter',
+              content: `
+                <div style="background: #000; color: #fff; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 24px;">
+                  <h2 style="font-size: 42px; font-weight: 700; margin-bottom: 24px;">Get Ten News Daily</h2>
+                  <p style="font-size: 18px; color: #86868b; margin-bottom: 48px;">The day's top stories, delivered to your inbox</p>
+                  <div style="width: 100%; max-width: 400px;">
+                    <input type="email" placeholder="Email" style="width: 100%; padding: 18px 24px; font-size: 17px; border: none; border-radius: 12px; background: #1c1c1e; color: #fff; margin-bottom: 16px;" />
+                    <button style="width: 100%; padding: 18px 40px; background: #fff; color: #000; border: none; border-radius: 12px; font-size: 18px; font-weight: 600; cursor: pointer;">Subscribe</button>
+                  </div>
+                  <div style="position: absolute; bottom: 40px; font-size: 15px; color: #6e6e73;">tennews.ai</div>
+                </div>
+              `
+            }
+          ];
+          
+          setStories(realStories);
+          setLoading(false);
+        } else {
+          throw new Error('News data not found');
+        }
+      } catch (error) {
+        console.log('Loading sample data as fallback');
+        // Fallback to sample data if real news not available
+        const sampleStories = [
+          {
+            type: 'opening',
+            date: 'MONDAY, AUGUST 25, 2025',
+            headline: 'Good morning, typhoon chaos hits Asia\'s coastal millions',
+            readingTime: '2 minute read'
+          },
+          {
+            type: 'news',
+            number: 1,
+            emoji: '🌀',
+            title: 'Massive Typhoon Forces Vietnam and China Emergency Evacuations',
+            summary: 'Typhoon Kajiki threatens millions as Vietnam evacuates 586,000 people and cancels flights. China\'s resort city Sanya closed businesses and public transport.',
+            url: 'https://reuters.com/typhoon'
+          },
+          {
+            type: 'news',
+            number: 2,
+            emoji: '☕',
+            title: 'Coffee Giants Near Record $18 Billion Merger Deal',
+            summary: 'Keurig Dr Pepper is close to buying Dutch company JDE Peet\'s for $18 billion. This merger would create a global coffee powerhouse.',
+            url: 'https://bloomberg.com/coffee'
+          },
+          {
+            type: 'news',
+            number: 3,
+            emoji: '🌾',
+            title: 'Brazil Farm Bankruptcies Surge Threatening Global Food Supply',
+            summary: 'Brazil\'s agricultural sector faces crisis with farm bankruptcies jumping 138% to 1,272 cases in 2024.',
+            url: 'https://reuters.com/brazil'
+          },
+          {
+            type: 'news',
+            number: 4,
+            emoji: '🤖',
+            title: 'UK Government Considers Free ChatGPT Plus for All Citizens',
+            summary: 'Minister Peter Kyle discussed a £2 billion deal with OpenAI\'s Sam Altman to provide ChatGPT Plus to all 67 million UK residents.',
+            url: 'https://bbc.com/uk-ai'
+          },
+          {
+            type: 'news',
+            number: 5,
+            emoji: '🚀',
+            title: 'NASA Discovers Earth-Like Planet With Water Signatures',
+            summary: 'James Webb telescope identifies potentially habitable exoplanet just 40 light-years away.',
+            url: 'https://nasa.gov/exoplanet'
+          },
+          {
+            type: 'news',
+            number: 6,
+            emoji: '📈',
+            title: 'Tech Stocks Drive S&P 500 to All-Time Record High',
+            summary: 'Markets surge as artificial intelligence companies lead unprecedented rally.',
+            url: 'https://cnbc.com/markets'
+          },
+          {
+            type: 'news',
+            number: 7,
+            emoji: '🏅',
+            title: 'Paris Olympics Shatters All Previous Attendance Records',
+            summary: 'Summer games attract record-breaking 15 million spectators across innovative urban venues.',
+            url: 'https://olympics.com/paris'
+          },
+          {
+            type: 'news',
+            number: 8,
+            emoji: '🎬',
+            title: 'Disney Launches Major Offensive in Streaming Wars',
+            summary: 'Entertainment giant announces $50 billion content investment and new pricing strategy.',
+            url: 'https://variety.com/disney'
+          },
+          {
+            type: 'news',
+            number: 9,
+            emoji: '🧬',
+            title: 'Revolutionary Cancer Treatment Shows 90% Success Rate',
+            summary: 'New immunotherapy approach demonstrates unprecedented results in late-stage clinical trials.',
+            url: 'https://nature.com/cancer'
+          },
+          {
+            type: 'news',
+            number: 10,
+            emoji: '🌍',
+            title: 'Breakthrough Carbon Capture Technology Promises Net Zero',
+            summary: 'Scientists unveil revolutionary atmospheric carbon removal system with 99% efficiency rate.',
+            url: 'https://science.org/climate'
+          },
+          {
+            type: 'history',
+            content: `
+              <div style="text-align: center; padding: 20px;">
+                <h1 style="font-size: 48px; font-weight: 800; margin-bottom: 40px;">Today in History</h1>
+                <div style="max-width: 600px; margin: 0 auto; text-align: left;">
+                  <div style="display: flex; gap: 24px; margin-bottom: 24px; align-items: center;">
+                    <span style="padding: 8px 16px; background: #C6E5F3; color: #007AFF; border-radius: 100px; font-weight: 700;">1991</span>
+                    <span style="font-size: 18px;">Linux operating system released by Linus Torvalds</span>
+                  </div>
+                  <div style="display: flex; gap: 24px; margin-bottom: 24px; align-items: center;">
+                    <span style="padding: 8px 16px; background: #C6E5F3; color: #007AFF; border-radius: 100px; font-weight: 700;">1944</span>
+                    <span style="font-size: 18px;">Paris liberated from Nazi occupation during World War II</span>
+                  </div>
+                  <div style="display: flex; gap: 24px; margin-bottom: 24px; align-items: center;">
+                    <span style="padding: 8px 16px; background: #C6E5F3; color: #007AFF; border-radius: 100px; font-weight: 700;">1835</span>
+                    <span style="font-size: 18px;">New York Sun publishes Great Moon Hoax articles</span>
+                  </div>
+                  <div style="display: flex; gap: 24px; margin-bottom: 24px; align-items: center;">
+                    <span style="padding: 8px 16px; background: #C6E5F3; color: #007AFF; border-radius: 100px; font-weight: 700;">1609</span>
+                    <span style="font-size: 18px;">Galileo demonstrates his first telescope to Venetian lawmakers</span>
+                  </div>
+                </div>
               </div>
-              <div style="display: flex; gap: 24px; margin-bottom: 24px; align-items: center;">
-                <span style="padding: 8px 16px; background: #C6E5F3; color: #007AFF; border-radius: 100px; font-weight: 700;">1944</span>
-                <span style="font-size: 18px;">Paris liberated from Nazi occupation during World War II</span>
+            `
+          },
+          {
+            type: 'end',
+            content: `
+              <div style="text-align: center;">
+                <div style="font-size: 64px; margin-bottom: 32px;">👋</div>
+                <h2 style="font-size: 36px; font-weight: 700; margin-bottom: 16px;">That's all for today, see you tomorrow :)</h2>
+                <p style="font-size: 17px; color: #86868b;">Stay informed with Ten News</p>
               </div>
-              <div style="display: flex; gap: 24px; margin-bottom: 24px; align-items: center;">
-                <span style="padding: 8px 16px; background: #C6E5F3; color: #007AFF; border-radius: 100px; font-weight: 700;">1835</span>
-                <span style="font-size: 18px;">New York Sun publishes Great Moon Hoax articles</span>
+            `
+          },
+          {
+            type: 'newsletter',
+            content: `
+              <div style="background: #000; color: #fff; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 24px;">
+                <h2 style="font-size: 42px; font-weight: 700; margin-bottom: 24px;">Get Ten News Daily</h2>
+                <p style="font-size: 18px; color: #86868b; margin-bottom: 48px;">The day's top stories, delivered to your inbox</p>
+                <div style="width: 100%; max-width: 400px;">
+                  <input type="email" placeholder="Email" style="width: 100%; padding: 18px 24px; font-size: 17px; border: none; border-radius: 12px; background: #1c1c1e; color: #fff; margin-bottom: 16px;" />
+                  <button style="width: 100%; padding: 18px 40px; background: #fff; color: #000; border: none; border-radius: 12px; font-size: 18px; font-weight: 600; cursor: pointer;">Subscribe</button>
+                </div>
+                <div style="position: absolute; bottom: 40px; font-size: 15px; color: #6e6e73;">tennews.ai</div>
               </div>
-              <div style="display: flex; gap: 24px; margin-bottom: 24px; align-items: center;">
-                <span style="padding: 8px 16px; background: #C6E5F3; color: #007AFF; border-radius: 100px; font-weight: 700;">1609</span>
-                <span style="font-size: 18px;">Galileo demonstrates his first telescope to Venetian lawmakers</span>
-              </div>
-            </div>
-          </div>
-        `
-      },
-      {
-        type: 'end',
-        content: `
-          <div style="text-align: center;">
-            <div style="font-size: 64px; margin-bottom: 32px;">👋</div>
-            <h2 style="font-size: 36px; font-weight: 700; margin-bottom: 16px;">That's all for today, see you tomorrow :)</h2>
-            <p style="font-size: 17px; color: #86868b;">Stay informed with Ten News</p>
-          </div>
-        `
-      },
-      {
-        type: 'newsletter',
-        content: `
-          <div style="background: #000; color: #fff; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 24px;">
-            <h2 style="font-size: 42px; font-weight: 700; margin-bottom: 24px;">Get Ten News Daily</h2>
-            <p style="font-size: 18px; color: #86868b; margin-bottom: 48px;">The day's top stories, delivered to your inbox</p>
-            <div style="width: 100%; max-width: 400px;">
-              <input type="email" placeholder="Email" style="width: 100%; padding: 18px 24px; font-size: 17px; border: none; border-radius: 12px; background: #1c1c1e; color: #fff; margin-bottom: 16px;" />
-              <button style="width: 100%; padding: 18px 40px; background: #fff; color: #000; border: none; border-radius: 12px; font-size: 18px; font-weight: 600; cursor: pointer;">Subscribe</button>
-            </div>
-            <div style="position: absolute; bottom: 40px; font-size: 15px; color: #6e6e73;">tennews.ai</div>
-          </div>
-        `
+            `
+          }
+        ];
+        
+        setStories(sampleStories);
+        setLoading(false);
       }
-    ];
-    
-    setStories(sampleStories);
-    setLoading(false);
+    };
+
+    loadNewsData();
   }, []);
 
   const goToStory = (index) => {
@@ -259,7 +337,9 @@ export default function Home() {
           padding: '0 24px',
           borderBottom: '0.5px solid rgba(0,0,0,0.08)'
         }}>
-          <div style={{ fontSize: '15px', fontWeight: 500, color: '#86868b' }}>Monday, Aug 25</div>
+          <div style={{ fontSize: '15px', fontWeight: 500, color: '#86868b' }}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          </div>
           <div style={{ fontSize: '17px', fontWeight: 600, color: '#1d1d1f' }}>Ten News</div>
           <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'linear-gradient(135deg, #007AFF, #5856D6)' }}></div>
         </div>
