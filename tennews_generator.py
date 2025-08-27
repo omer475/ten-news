@@ -1,4 +1,6 @@
 # TENNEWS DAILY DIGEST - GITHUB VERSION
+# Automated news selection and generation for Next.js website
+
 import requests
 import json
 from datetime import datetime, timedelta, timezone
@@ -77,7 +79,7 @@ def fetch_previous_articles_from_excel():
             return []
         
         print("\n📚 Reading previous articles from Excel...")
-        df = pd.read_excel(EXCEL_FILE)
+        df = pd.read_excel(EXCEL_FILE, engine='openpyxl')
         
         if df.empty:
             print("📊 Excel file is empty (no previous articles)")
@@ -111,7 +113,7 @@ def save_articles_to_excel(articles_data, daily_greeting, reading_time, formatte
         
         # Read existing data or create new DataFrame
         if os.path.exists(EXCEL_FILE):
-            df_existing = pd.read_excel(EXCEL_FILE)
+            df_existing = pd.read_excel(EXCEL_FILE, engine='openpyxl')
         else:
             df_existing = pd.DataFrame()
         
@@ -194,7 +196,6 @@ def generate_daily_greeting_and_reading_time(top_articles):
     uk_time = datetime.now(uk_tz)
     
     total_words = sum(len(article.get('summary', '').split()) for article in top_articles)
-    
     titles = [article.get('title', '') for article in top_articles]
     
     prompt = f"""Today is {uk_time.strftime('%B %d, %Y')} ({uk_time.strftime('%A')}).
@@ -284,8 +285,8 @@ Format Requirements:
 - Write in this format: "• [YEAR]: [Event description in 10 words or less]"
 
 Examples of good format:
-- 1485: King Richard III defeated at Battle of Bosworth Field
-- 1969: Neil Armstrong walks on the moon for first time
+• 1485: King Richard III defeated at Battle of Bosworth Field
+• 1969: Neil Armstrong walks on the moon for first time
 
 What to avoid:
 - Don't include two events about the same topic (like two Beatles events)
@@ -371,7 +372,6 @@ def fetch_gdelt_news_last_24_hours():
     print("=" * 70)
     
     all_articles = []
-    
     url = "https://api.gdeltproject.org/api/v2/doc/doc"
     
     headers = {
@@ -421,8 +421,6 @@ def fetch_gdelt_news_last_24_hours():
         "(election OR vote OR poll OR campaign OR candidate OR primary OR ballot OR democracy)"
     ]
     
-    print("\n🔍 Searching for important news across categories...")
-    
     query_labels = {
         1: "General Breaking News",
         2: "Human Impact/Casualties",
@@ -465,6 +463,8 @@ def fetch_gdelt_news_last_24_hours():
         39: "Social Media",
         40: "Elections"
     }
+    
+    print("\n🔍 Searching for important news across categories...")
     
     for idx, query in enumerate(search_queries, 1):
         label = query_labels.get(idx, f"Search {idx}")
@@ -531,7 +531,6 @@ def fetch_gdelt_news_last_24_hours():
             elif response.status_code == 429:
                 print(f"   ⚠️ Rate limited, waiting 2 seconds...")
                 time.sleep(2)
-                
             else:
                 print(f"   ❌ Error {response.status_code}")
                 
@@ -1424,4 +1423,196 @@ def main():
         if len(selected_articles) > 10:
             selected_articles = selected_articles[:10]
             print(f"📋 Trimmed to exactly 10 articles")
-        elif len(selected_articles) <
+        elif len(selected_articles) < 10:
+            print(f"⚠️ Only {len(selected_articles)} articles selected (target was 10)")
+        
+        print(f"\n✅ Selected {len(selected_articles)} top articles for the digest")
+        
+        print("\n📰 Selected Articles:")
+        for i, article in enumerate(selected_articles, 1):
+            title_preview = article['title'][:60]
+            if len(article['title']) > 60:
+                title_preview += "..."
+            print(f"  {i}. {title_preview}")
+            print(f"     Category: {article.get('category', 'General News')}")
+        
+        top_10_articles = selected_articles
+        
+        # PHASE 6: Fetch full content for top 10
+        print("\n🌐 Fetching full content for top 10 articles...")
+        
+        articles_with_content = []
+        for i, article in enumerate(top_10_articles, 1):
+            title_preview = article['title'][:60]
+            if len(article['title']) > 60:
+                title_preview += "..."
+            print(f"\n📄 Fetching article {i}/10: {title_preview}")
+            
+            content = scrape_article_content(article['url'])
+            
+            if content:
+                print(f"   ✓ Retrieved {len(content)} characters")
+            else:
+                print(f"   ⚠️ Using title only (scraping failed)")
+                content = article['title']
+            
+            try:
+                url_parts = article['url'].split('/')
+                if len(url_parts) >= 3:
+                    domain = url_parts[2].replace('www.', '')
+                else:
+                    domain = 'Unknown'
+            except:
+                domain = 'Unknown'
+            
+            source_map = {
+                'cnn.com': 'CNN',
+                'bbc.com': 'BBC',
+                'bbc.co.uk': 'BBC',
+                'reuters.com': 'Reuters',
+                'apnews.com': 'Associated Press',
+                'theguardian.com': 'The Guardian',
+                'nytimes.com': 'The New York Times',
+                'bloomberg.com': 'Bloomberg',
+                'washingtonpost.com': 'The Washington Post',
+                'wsj.com': 'The Wall Street Journal',
+                'foxnews.com': 'Fox News',
+                'cnbc.com': 'CNBC',
+                'npr.org': 'NPR',
+                'aljazeera.com': 'Al Jazeera',
+                'france24.com': 'France 24',
+                'scmp.com': 'South China Morning Post',
+                'forbes.com': 'Forbes',
+                'techcrunch.com': 'TechCrunch',
+                'wired.com': 'Wired',
+                'nature.com': 'Nature',
+                'science.org': 'Science',
+                'ft.com': 'Financial Times',
+                'politico.com': 'Politico',
+                'politico.eu': 'Politico Europe',
+                'axios.com': 'Axios',
+                'vox.com': 'Vox',
+                'thehill.com': 'The Hill',
+                'time.com': 'TIME',
+                'newsweek.com': 'Newsweek',
+                'usatoday.com': 'USA Today',
+                'abcnews.go.com': 'ABC News',
+                'nbcnews.com': 'NBC News',
+                'cbsnews.com': 'CBS News',
+                'msnbc.com': 'MSNBC',
+                'marketwatch.com': 'MarketWatch',
+                'businessinsider.com': 'Business Insider',
+                'fortune.com': 'Fortune',
+                'economist.com': 'The Economist',
+                'barrons.com': 'Barron\'s'
+            }
+            source = source_map.get(domain, domain.replace('.com', '').replace('.org', '').replace('.net', '').replace('.co.uk', '').title())
+            
+            article_data = article.copy()
+            article_data['content'] = content
+            article_data['source'] = source
+            articles_with_content.append(article_data)
+        
+        # PHASE 7: Rewrite articles
+        print("\n✍️ Creating B2 English summaries...")
+        rewriting_prompt = create_rewriting_prompt(articles_with_content, previous_articles)
+        
+        final_response = call_claude_api(rewriting_prompt, "Rewriting articles in B2 English")
+        
+        if not final_response:
+            print("\n❌ Failed to rewrite articles")
+            return
+        
+        articles_data = parse_json_with_fallback(final_response)
+        if not articles_data:
+            print("\n❌ Failed to parse final response")
+            return
+        
+        if 'articles' not in articles_data or not articles_data['articles']:
+            print("\n❌ No articles in final response")
+            return
+        
+        print(f"\n✅ Successfully created final digest with {len(articles_data['articles'])} articles")
+        
+        # PHASE 8: Generate daily greeting and reading time
+        print("\n🎯 Generating daily greeting and reading time...")
+        daily_greeting, reading_time = generate_daily_greeting_and_reading_time(articles_data['articles'])
+        formatted_date = get_formatted_date()
+        
+        print(f"📅 Date: {formatted_date}")
+        print(f"👋 Greeting: {daily_greeting}")
+        print(f"⏱️ Reading time: {reading_time}")
+        
+        # PHASE 9: Generate historical events for today
+        historical_events = generate_historical_events()
+        
+        # PHASE 10: Save to Excel
+        save_articles_to_excel(articles_data, daily_greeting, reading_time, formatted_date)
+        
+        # PHASE 11: Save to JSON for website
+        output_data = {
+            'lastUpdate': datetime.now().isoformat(),
+            'displayDate': formatted_date,
+            'dailyGreeting': daily_greeting,
+            'readingTime': reading_time,
+            'articles': articles_data['articles'],
+            'historicalEvents': historical_events
+        }
+        
+        with open(OUTPUT_JSON, 'w', encoding='utf-8') as f:
+            json.dump(output_data, f, ensure_ascii=False, indent=2)
+        
+        print(f"\n✅ Successfully generated news digest!")
+        print(f"📄 JSON saved to: {OUTPUT_JSON}")
+        print(f"📊 Excel archive: {EXCEL_FILE}")
+        
+        # Show preview
+        print("\n📰 DIGEST PREVIEW:")
+        print("-" * 70)
+        print(f"📅 {formatted_date}")
+        print(f"👋 {daily_greeting}")
+        print(f"⏱️ {reading_time}")
+        print("\n📚 Historical Events for Today:")
+        for event in historical_events:
+            print(f"   • {event['year']}: {event['description']}")
+        print("-" * 70)
+        for article in articles_data['articles'][:3]:
+            print(f"{article['rank']}. {article['emoji']} {article['title']}")
+            print(f"   Impact: {article.get('importance', 'High')}")
+            summary_preview = article['summary'][:80]
+            if len(article['summary']) > 80:
+                summary_preview += "..."
+            print(f"   {summary_preview}")
+            print()
+        
+    except KeyboardInterrupt:
+        print("\n\n⚠️ Process interrupted by user")
+        return
+    except Exception as e:
+        print(f"\n❌ Unexpected error in main execution: {str(e)}")
+        import traceback
+        print("\nFull error traceback:")
+        traceback.print_exc()
+        return
+
+# ==================== SCRIPT EXECUTION ====================
+if __name__ == "__main__":
+    print("Welcome to Tennews Daily Digest - GitHub Version!")
+    print("\nFeatures:")
+    print("✓ AI-powered selection of top 10 global news")
+    print("✓ Strict criteria for global impact and relevance")
+    print("✓ Full content retrieval for selected articles")
+    print("✓ B2 English summaries (40-50 words)")
+    print("✓ Automatic duplicate detection")
+    print("✓ Excel archive for previous articles")
+    print("✓ JSON output for Next.js website")
+    print("\n🔧 Using Claude Opus 4.1 model")
+    
+    if CLAUDE_API_KEY == "your-api-key-here-for-testing":
+        print("\n⚠️ WARNING: Claude API key not set!")
+        print("Please set CLAUDE_API_KEY environment variable")
+        print("Or add it to GitHub Secrets for automation")
+    else:
+        print("\n✅ API key detected!")
+        print("\nStarting news generation...")
+        main()
